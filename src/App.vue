@@ -4,41 +4,18 @@
       <nav class="container mx-auto flex justify-between items-center p-4">
         <h1 class="text-2xl font-bold tracking-tight">Bimba School</h1>
         <div class="flex gap-6">
-          <a href="/" class="hover:text-indigo-300 transition-colors">Home</a>
-          <a href="/grades" class="hover:text-indigo-300 transition-colors">Grades</a>
-          <a href="/colleges" class="hover:text-indigo-300 transition-colors">Colleges</a>
-          <a href="/profile" class="hover:text-indigo-300 transition-colors">Profile</a>
+          <router-link to="/" class="hover:text-indigo-300 transition-colors">Home</router-link>
+          <router-link to="/grades" class="hover:text-indigo-300 transition-colors">Grades</router-link>
+          <router-link to="/colleges" class="hover:text-indigo-300 transition-colors">Colleges</router-link>
+          <router-link to="/profile" class="hover:text-indigo-300 transition-colors">Profile</router-link>
+          <router-link v-if="!USER_LOGGED_IN" to="/login" class="hover:text-indigo-300 transition-colors">Login</router-link>
+          <button v-else @click="logout" class="hover:text-indigo-300 transition-colors">Logout</button>
         </div>
       </nav>
     </header>
 
     <main class="container mx-auto p-6">
-      <div class="max-w-4xl mx-auto">
-        <h1 class="text-4xl font-bold mb-6 text-indigo-400">Welcome to Bimba School</h1>
-        <div class="bg-gray-800 p-6 rounded-lg shadow-xl">
-          <p class="text-xl text-gray-300 mb-6">Your comprehensive school grade management platform</p>
-          
-          <div class="grid md:grid-cols-3 gap-6 mt-8">
-            <div class="bg-gray-700 p-5 rounded-lg border border-gray-600 hover:border-indigo-500 transition-colors">
-              <div class="text-3xl text-indigo-400 mb-4">📊</div>
-              <h2 class="text-xl font-semibold mb-2">Grade Calculator</h2>
-              <p class="text-gray-300">Track and calculate your GPA across all courses.</p>
-            </div>
-            
-            <div class="bg-gray-700 p-5 rounded-lg border border-gray-600 hover:border-indigo-500 transition-colors">
-              <div class="text-3xl text-indigo-400 mb-4">🎓</div>
-              <h2 class="text-xl font-semibold mb-2">College Finder</h2>
-              <p class="text-gray-300">Find colleges matching your academic profile with AI.</p>
-            </div>
-            
-            <div class="bg-gray-700 p-5 rounded-lg border border-gray-600 hover:border-indigo-500 transition-colors">
-              <div class="text-3xl text-indigo-400 mb-4">📱</div>
-              <h2 class="text-xl font-semibold mb-2">Always Available</h2>
-              <p class="text-gray-300">Access your data from anywhere with secure storage.</p>
-            </div>
-          </div>
-        </div>
-      </div>
+      <router-view />
     </main>
 
     <footer class="bg-gray-800 p-6 mt-12">
@@ -50,11 +27,46 @@
 </template>
 
 <script>
+import { ref, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
+import { supabase } from './services/supabase'
+import { toast } from 'vue3-toastify'
+
 export default {
   name: 'App',
-  data() {
+  setup() {
+    const CURRENT_YEAR = new Date().getFullYear()
+    const USER_LOGGED_IN = ref(false)
+    const router = useRouter()
+
+    async function checkUser() {
+      const { data, error } = await supabase.auth.getSession()
+      if (data && data.session) {
+        USER_LOGGED_IN.value = true
+      }
+    }
+
+    async function logout() {
+      try {
+        const { error } = await supabase.auth.signOut()
+        if (error) throw error
+        USER_LOGGED_IN.value = false
+        toast.success('Logged out successfully')
+        router.push('/login')
+      } catch (error) {
+        toast.error('Error logging out')
+        console.error('Error logging out:', error)
+      }
+    }
+
+    onMounted(() => {
+      checkUser()
+    })
+
     return {
-      CURRENT_YEAR: new Date().getFullYear()
+      CURRENT_YEAR,
+      USER_LOGGED_IN,
+      logout
     }
   }
 }
